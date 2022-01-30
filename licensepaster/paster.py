@@ -24,7 +24,6 @@ SOFTWARE.
 
 import logging
 import re
-from pathlib import Path
 import os
 
 __all__ = (
@@ -39,30 +38,30 @@ log = logging.getLogger("licensepaster")
 
 class PasteProtocol:
     def __init__(self, license: str, *, pattern: re.Pattern = None):
-        self.license = f'"""\n{license.strip()}\n"""'
-        self.pattern = pattern or re.compile(re.escape(self.license))
+        self.license = license.strip()
+        self.license_pattern = re.compile(re.escape(self.license))
+        self.pattern = pattern or self.license_pattern
 
-    def match(self, string: str):
-        return self.pattern.match(string)
+    def search(self, string: str):
+        return self.pattern.search(string)
 
     def sub(self, string: str):
-        return self.pattern.sub(self.license, string)
+        return self.pattern.sub(f"\n{self.license}\n", string)
 
     def should_write(self, string: str) -> bool:
-        return not re.compile(re.escape(self.license)).match(string)
-    
+        return not self.license_pattern.match(string)
+
     def paste(self, string: str) -> bool:
-        if self.match(string):
+        if self.search(string):
             return self.sub(string)
-        else:
-            return f"{self.license}\n\n{string}"
+        return f'"""\n{self.license}\n"""\n\n{string}'
 
 
 def paste_file(file_name: str, protocol: PasteProtocol):
-    with open(file_name, "r+", encoding="utf_8") as code_file:
+    with open(file_name, "r+", encoding="utf-8") as code_file:
         text = code_file.read()
         if protocol.should_write(text):
-            log.info(f"pasting to {file_name}")
+            log.info("pasting to %s", file_name)
             pasted = protocol.paste(text)
             code_file.truncate()
             code_file.seek(0)
@@ -71,16 +70,19 @@ def paste_file(file_name: str, protocol: PasteProtocol):
 
 def paste_directory(directory: str, protocol: PasteProtocol):
     for file_name in os.listdir(directory):
+        if file_name.startswith("."):
+            continue
         file_path = os.path.join(directory, file_name)
         if os.path.isdir(file_path):
             paste_directory(file_path, protocol)
         elif os.path.isfile(file_path):
-            if file_path.endswith('.py'):
+            if file_path.endswith(".py"):
                 paste_file(file_path, protocol)
 
 
 def find_license(directory: str) -> str:
     for file_name in os.listdir(directory):
+        file_path = os.path.join(directory, file_name)
         if file_name.startswith("LICENSE"):
-            with open(file_name, "r") as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 return file.read()
