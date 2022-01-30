@@ -21,17 +21,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
+from pathlib import Path
 import re
 
 from licensepaster import find_license, PasteProtocol, paste_directory
 
-directory = "test_directory"
+directory = (Path(__file__).parent / "test_directory").resolve()
 license = find_license(directory)
 
 license_pattern = re.compile(r"""
 MIT License
 
-Copyright \(c\) 202(?:0|1)(?:-present)?(?: (?:P|p)heno(?:M|m)4n4n)?
+Copyright \(c\) 202(?:0|1)(?:-(?:present|2021))?(?: (?:P|p)heno(?:M|m)4n4n)?
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files \(the \"Software\"\), to deal
